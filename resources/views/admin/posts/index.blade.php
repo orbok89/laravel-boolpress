@@ -4,6 +4,11 @@
     <ul>
         @foreach ($posts as $post)
             <li><a href="{{route('admin.posts.show', $post['slug'])}}">{{$post['title']}} </a></li>
+           
+            @if ($post->category)
+                {{$post->category->name}}
+            @endif
+
             <form method="post" action="{{route('admin.posts.destroy', $post->id)}}" class="d-inline-block">
             @csrf
             @method('DELETE')
