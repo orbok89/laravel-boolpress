@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Post;
 use Illuminate\Support\Str;
 use App\Category;
+use App\Tag;
 class PostController extends Controller
 {
     /**
@@ -28,7 +29,8 @@ class PostController extends Controller
     public function create()
     {
         $categories = Category::all();
-        return view('admin.posts.create', compact('categories'));
+        $tags = Tag::all();
+        return view('admin.posts.create', compact('categories','tags'));
     }
 
     /**
@@ -43,7 +45,8 @@ class PostController extends Controller
         $request->validate([
             'title'=>'required|max:255',
             'content'=> 'required',
-            'category_id'=>'nullable|exists:categories,id' 
+            'category_id'=>'nullable|exists:categories,id' ,
+            'tags'=>'exists:tags,id'
         ]);
          
         $form_data=$request->all();
@@ -63,6 +66,7 @@ class PostController extends Controller
 
         $new_post->slug = $slug;
         $new_post->save();
+        $new_post->tags()->attach($form_data['tags']);
 
         return redirect()->route('admin.posts.index')->with('inserted', 'Il record è stato correttamente salvato');
     }
@@ -94,7 +98,9 @@ class PostController extends Controller
             abort(404);
         }
         $categories = Category::all();
-        return view('admin.posts.edit', compact('post', 'categories'));
+        $tags = Tag::all();
+
+        return view('admin.posts.edit', compact('post', 'categories','tags'));
     }
 
     /**
@@ -109,7 +115,7 @@ class PostController extends Controller
         $request->validate([
             'title'=>'required|max:255',
             'content'=> 'required',
-             
+            'tags'=>'nullable|exists:tags,id',
         ]);
 		
         $form_data = $request->all();
@@ -129,6 +135,11 @@ class PostController extends Controller
 				
 			 
         $post->update($form_data); 
+        if(array_key_exists('tags', $form_data)){
+            $post->tags()->sync($form_data['tags']);
+        }else{
+            $post->tags()->sync([]);
+        }
         return redirect()->route('admin.posts.index')->with('updated', 'Post correttamente aggiornato');
 
     }
@@ -141,7 +152,11 @@ class PostController extends Controller
      */
     public function destroy(Post $post)
     {
+
+          $post->tags()->detach($post->id);
         $post->delete();
+      
         return redirect()->route('admin.posts.index')->with('deleted', 'Post eliminato');
+        
     }
 }
